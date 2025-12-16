@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Registro de Personal — Ejemplo Modal</title>
+  <meta name="description" content="Ejemplo de padre + modal para registrar una persona en la empresa">
+  <style>
+    :root{ --bg:#f5f7fb; --card:#fff; --accent:#5b21b6; --accent-2:#7c3aed; --muted:#6b7280; --success:#16a34a }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:var(--bg); color:#0f172a}
+    .wrap{max-width:980px;margin:36px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+    h1{font-size:1.25rem;margin:0}
+    p.lead{margin:6px 0 0;color:var(--muted)}
+
+    /* card lista */
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 22px rgba(2,6,23,0.06)}
+    .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:600}
+    .btn.ghost{background:transparent;color:var(--accent);box-shadow:none;border:1px solid rgba(15,23,42,0.06)}
+
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #eef2ff;font-size:0.95rem}
+
+    /* modal overlay */
+    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,23,0.45);z-index:999}
+    .overlay.active{display:flex}
+    .modal{width:100%;max-width:640px;background:var(--card);border-radius:12px;padding:18px;box-shadow:0 18px 40px rgba(2,6,23,0.3)}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .modal h2{margin:0;font-size:1.1rem}
+    .close-btn{background:transparent;border:0;font-size:1.1rem;cursor:pointer}
+
+    form{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:6px}
+    input[type="text"],input[type="email"],input[type="tel"],select,input[type="date"]{width:100%;padding:10px;border-radius:8px;border:1px solid #e6edf6;background:#fff}
+    .full{grid-column:1/-1}
+    .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+
+    .error{color:#dc2626;font-size:0.85rem;margin-top:4px}
+    .success-msg{color:var(--success);font-weight:600}
+
+    /* responsive */
+    @media (max-width:640px){
+      form{grid-template-columns:1fr}
+      .modal{padding:14px}
+      .toolbar{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Registro de Personal</h1>
+        <p class="lead">Añade nuevo personal a la base de la empresa mediante el modal.</p>
+      </div>
+      <div>
+        <button id="openModal" class="btn">+ Nuevo Empleado</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="toolbar">
+        <div>
+          <strong>Empleados registrados</strong>
+          <div style="font-size:0.85rem;color:var(--muted)">Lista en localStorage (demo)</div>
+        </div>
+        <div>
+          <button id="exportBtn" class="btn ghost">Exportar CSV</button>
+        </div>
+      </div>
+
+      <table aria-describedby="tabla-empleados">
+        <thead>
+          <tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Posición</th><th>Departamento</th></tr>
+        </thead>
+        <tbody id="employeesList">
+          <!-- filas generadas -->
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Modal -->
+  <div class="overlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h2 id="modalTitle">Registrar Empleado</h2>
+        <button class="close-btn" id="closeModal" aria-label="Cerrar">✕</button>
+      </div>
+
+      <form id="employeeForm" novalidate>
+        <div>
+          <label for="firstName">Nombre</label>
+          <input id="firstName" name="firstName" type="text" required placeholder="Nombre" />
+          <div class="error" id="err-firstName" aria-live="polite"></div>
+        </div>
+
+        <div>
+          <label for="lastName">Apellido</label>
+          <input id="lastName" name="lastName" type="text" required placeholder="Apellido" />
+          <div class="error" id="err-lastName" aria-live="polite"></div>
+        </div>
+
+        <div>
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required placeholder="correo@ejemplo.com" />
+          <div class="error" id="err-email" aria-live="polite"></div>
+        </div>
+
+        <div>
+          <label for="phone">Teléfono</label>
+          <input id="phone" name="phone" type="tel" pattern="[0-9()+\-\s]{7,20}" placeholder="+51 9xx xxx xxx" />
+          <div class="error" id="err-phone" aria-live="polite"></div>
+        </div>
+
+        <div>
+          <label for="position">Posición</label>
+          <input id="position" name="position" type="text" placeholder="Ej. Desarrollador Frontend" />
+        </div>
+
+        <div>
+          <label for="department">Departamento</label>
+          <select id="department" name="department">
+            <option value="">Seleccione...</option>
+            <option>Desarrollo</option>
+            <option>Diseño</option>
+            <option>Ventas</option>
+            <option>Recursos Humanos</option>
+          </select>
+        </div>
+
+        <div class="full">
+          <label for="startDate">Fecha de inicio</label>
+          <input id="startDate" name="startDate" type="date" />
+        </div>
+
+        <div class="actions full">
+          <div style="margin-right:auto;align-self:center;font-size:0.95rem;color:var(--muted)" id="formStatus"></div>
+          <button type="button" id="cancelBtn" class="btn ghost">Cancelar</button>
+          <button type="submit" class="btn">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Elementos
+    const openModalBtn = document.getElementById('openModal');
+    const overlay = document.getElementById('modalOverlay');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const employeeForm = document.getElementById('employeeForm');
+    const employeesList = document.getElementById('employeesList');
+    const formStatus = document.getElementById('formStatus');
+
+    // Focus trap helpers
+    const focusableSelector = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+    let lastFocused = null;
+
+    function openModal(){
+      lastFocused = document.activeElement;
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('no-scroll');
+      // focus primer input
+      setTimeout(()=> document.getElementById('firstName').focus(), 50);
+    }
+
+    function closeModal(){
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden','true');
+      document.body.classList.remove('no-scroll');
+      clearFormStatus();
+      employeeForm.reset();
+      if(lastFocused) lastFocused.focus();
+    }
+
+    openModalBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+
+    // cerrar con overlay click
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+
+    // Esc para cerrar y manejo Tab (trap) dentro del modal
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape' && overlay.classList.contains('active')) closeModal();
+      if(e.key==='Tab' && overlay.classList.contains('active')){
+        const focusables = Array.from(overlay.querySelectorAll(focusableSelector));
+        if(focusables.length===0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length-1];
+        if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
+    });
+
+    // Validación simple
+    function validate(formData){
+      let ok = true;
+      function setErr(id,msg){ document.getElementById('err-'+id).textContent = msg; if(msg) ok=false }
+      setErr('firstName',''); setErr('lastName',''); setErr('email',''); setErr('phone','');
+
+      if(!formData.get('firstName')?.trim()) setErr('firstName','El nombre es requerido');
+      if(!formData.get('lastName')?.trim()) setErr('lastName','El apellido es requerido');
+      const email = formData.get('email');
+      if(!email || !/^\S+@\S+\.\S+$/.test(email)) setErr('email','Introduce un email válido');
+      const phone = formData.get('phone');
+      if(phone && !/^[0-9()+\-\s]{7,20}$/.test(phone)) setErr('phone','Teléfono inválido');
+
+      return ok;
+    }
+
+    // Guardar en localStorage y añadir a la tabla
+    function saveEmployee(data){
+      const stored = JSON.parse(localStorage.getItem('empleados') || '[]');
+      stored.push(data);
+      localStorage.setItem('empleados', JSON.stringify(stored));
+      renderList();
+    }
+
+    function renderList(){
+      const stored = JSON.parse(localStorage.getItem('empleados') || '[]');
+      employeesList.innerHTML = '';
+      if(stored.length===0){
+        employeesList.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No hay empleados registrados</td></tr>';
+        return;
+      }
+      stored.forEach(emp=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${emp.firstName} ${emp.lastName}</td><td>${emp.email}</td><td>${emp.phone||''}</td><td>${emp.position||''}</td><td>${emp.department||''}</td>`;
+        employeesList.appendChild(tr);
+      });
+    }
+
+    function clearFormStatus(){ formStatus.textContent=''; document.querySelectorAll('.error').forEach(e=>e.textContent='') }
+
+    employeeForm.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      clearFormStatus();
+      const fd = new FormData(employeeForm);
+      if(!validate(fd)) return;
+      const employee = Object.fromEntries(fd.entries());
+      saveEmployee(employee);
+      formStatus.textContent = 'Empleado guardado correctamente.';
+      formStatus.className = 'success-msg';
+      setTimeout(()=>{ closeModal(); },800);
+    });
+
+    // export CSV
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const arr = JSON.parse(localStorage.getItem('empleados')||'[]');
+      if(arr.length===0){ alert('No hay datos para exportar'); return }
+      const headers = ['Nombre','Email','Teléfono','Posición','Departamento'];
+      const rows = arr.map(r => [`"${r.firstName} ${r.lastName}"`, r.email||'', r.phone||'', r.position||'', r.department||'']);
+      const csv = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'empleados.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    // init
+    renderList();
+  </script>
+</body>
+</html>
